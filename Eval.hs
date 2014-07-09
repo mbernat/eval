@@ -1,4 +1,4 @@
-module Eval (parse, exec) where
+module Eval (Result, parse, exec) where
 
 import Language.Haskell.Interpreter (InterpreterError, Interpreter, runInterpreter, setImports, eval, typeOf)
 
@@ -7,16 +7,18 @@ process :: String -> (String -> Interpreter String) -> IO (Either InterpreterErr
 process line f = runInterpreter $ setImports imports >> f line
 
 data Cmd = Eval String | TypeOf String | Unknown
+type Result = Maybe (Either String String)
 
 parse :: String -> Cmd
 parse (':' : 'e' : s) = Eval s
 parse (':' : 't' : s) = TypeOf s
 parse _ = Unknown
 
-exec :: Cmd -> IO ()
+exec :: Cmd -> IO Result
 exec (Eval s) = process s eval >>= post
 exec (TypeOf s) = process s typeOf >>= post
-exec Unknown = putStrLn "Command not supported"
+exec Unknown = return Nothing
 
-post (Right s) = putStrLn s
-post (Left e) = putStrLn $ show e
+post :: Either InterpreterError String -> IO Result
+post (Right s) = return $ Just $ Right s
+post (Left e) = return $ Just $ Left $ show e
