@@ -1,28 +1,34 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 
-import Control.Monad.IO.Class
-import Data.Text.Lazy
-import Web.Scotty
+import GHC.Generics (Generic)
+import qualified Data.Aeson as A
+import qualified Web.Scotty as S
+
+import Control.Monad.IO.Class (liftIO)
+import Web.Scotty (ActionM)
 import Web.Scotty.Trans (ActionT)
-import Eval
 
-channel = "slack-sandbox"
-name = "Mr. Haskell"
+import qualified Eval as E
 
-makeUrl token channel name text = "https://slack.com/api/chat.postMessage?" ++
-                                  "?token=" ++ token ++
-                                  "&channel=%23" ++ channel ++
-                                  "&text=" ++ text ++
-                                  "&username=" ++ name
+extract :: E.Result -> String
+extract (Just (Right s)) = s
+extract (Just (Left s)) = s
+extract _ = "Command not supported"
 
-makeHtml :: IO Result -> ActionM ()
-makeHtml m = liftIO m >>= html . pack. write where
-    write (Just (Right s)) = s
-    write (Just (Left s)) = s
-    write _ = "Command not supported"
+data Response = Response { text :: String } deriving Generic
+instance A.ToJSON Response
 
-main = scotty 3000 $ do
-         get "/slack" $ do
-                       text <- param "text"
-                       let cmd = parse text
-                       makeHtml $ exec cmd
+toJson :: IO E.Result -> ActionM ()
+toJson m = liftIO m >>= S.json . makeJson . extract where
+    makeJson s = Response { text = s }
+
+main = S.scotty 3000 $ do
+         S.post "/slack" $ do
+                       liftIO $ putStrLn $ "POST!"
+                       text <- S.param "text"
+                       liftIO $ putStrLn $ text
+                       let cmd = E.parse text
+                       toJson (E.exec cmd)
+                       
+                       
