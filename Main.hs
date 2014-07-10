@@ -1,8 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
 
-import GHC.Generics (Generic)
-import qualified Data.Aeson as A
+import Data.Aeson (toJSON, ToJSON, (.=), object)
 import qualified Web.Scotty as S
 
 import Control.Monad.IO.Class (liftIO)
@@ -16,8 +15,9 @@ extract (Just (Right s)) = s
 extract (Just (Left s)) = s
 extract _ = "Command not supported"
 
-data Response = Response { text :: String } deriving Generic
-instance A.ToJSON Response
+data Response = Response { text :: String }
+instance ToJSON Response where
+     toJSON (Response text) = object ["text" .= text]
 
 toJson :: IO E.Result -> ActionM ()
 toJson m = liftIO m >>= S.json . makeJson . extract where
