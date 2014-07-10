@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE DeriveGeneric #-}
 
 import Data.Aeson (toJSON, ToJSON, (.=), object)
 import qualified Web.Scotty as S
